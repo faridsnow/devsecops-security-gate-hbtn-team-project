@@ -1,17 +1,13 @@
 import os
-import ast
 
-# ✅ 1. TƏHLÜKƏSİZ - Environment Variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+# 🚨 1. SIZMIŞ GİZLİ AÇARLAR (Secret Leaks)
+OPENAI_API_KEY = "sk-proj-9999888877776666555544443333222211110000"
+AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
 
-# ✅ 2. TƏHLÜKƏSİZ - Parameterized SQL
-def get_user(cursor, user_id):
-    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+# 🚨 2. SQL INJECTION BOŞLUĞU
+def get_user(user_id):
+    return f"SELECT * FROM users WHERE id = {user_id}"
 
-# ✅ 3. TƏHLÜKƏSİZ - ast.literal_eval
+# 🚨 3. REMOTE CODE EXECUTION (eval RCE)
 def run_code(code):
-    try:
-        return ast.literal_eval(code)
-    except Exception:
-        return 0
+    return eval(code)
