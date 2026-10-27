@@ -37,23 +37,23 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-400 mono">Scan ID: <span id="scan-id" class="text-gray-200">vapt-20260921-211416</span></span>
-                <span id="gate-badge" class="px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border flex items-center gap-1.5 bg-emerald-950/80 text-emerald-300 border-emerald-500/50 glow-green">
-                    ✅ CI/CD GATE PASSED
+                <span class="text-xs text-gray-400 mono">Scan ID: <span id="scan-id" class="text-gray-200">vapt-20261027-082402</span></span>
+                <span id="gate-badge" class="px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border flex items-center gap-1.5 bg-red-950/80 text-red-300 border-red-500/50 glow-red">
+                    ❌ CI/CD GATE BLOKLANDI
                 </span>
             </div>
         </header>
 
         <!-- Metrics Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="glass-card rounded-xl p-5 border-t-2 border-emerald-500">
+            <div class="glass-card rounded-xl p-5 border-t-2 border-red-500">
                 <div class="flex justify-between items-start">
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">CVSS v3.1 Risk Skoru</span>
-                    <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+                    <i data-lucide="activity" class="w-5 h-5 text-red-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-emerald-400 mono" id="cvss-score">0.0</span>
-                    <span class="text-xs font-bold text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded">CLEAN</span>
+                    <span class="text-3xl font-extrabold text-red-400 mono" id="cvss-score">9.5</span>
+                    <span class="text-xs font-bold text-red-300 bg-red-950/60 px-2 py-0.5 rounded">CRITICAL</span>
                 </div>
                 <p class="text-xs text-gray-400 mt-2">Weighted Max Risk Alqoritmi ilə</p>
             </div>
@@ -64,8 +64,8 @@
                     <i data-lucide="bug" class="w-5 h-5 text-amber-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-amber-400 mono">0</span>
-                    <span class="text-xs text-gray-400">(0 xam tapıntıdan)</span>
+                    <span class="text-3xl font-extrabold text-amber-400 mono">4</span>
+                    <span class="text-xs text-gray-400">(4 xam tapıntıdan)</span>
                 </div>
                 <p class="text-xs text-emerald-400 mt-2">✨ 0 təkrar süzüldü (Deduplicated)</p>
             </div>
@@ -76,7 +76,7 @@
                     <i data-lucide="alert-triangle" class="w-5 h-5 text-indigo-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline gap-3">
-                    <span class="text-2xl font-bold text-red-400 mono">🔴 0 Crit</span>
+                    <span class="text-2xl font-bold text-red-400 mono">🔴 4 Crit</span>
                     <span class="text-2xl font-bold text-amber-400 mono">🟠 0 High</span>
                 </div>
                 <p class="text-xs text-gray-400 mt-2">CI/CD Gate Bloklama Siyasəti: Aktiv</p>
@@ -88,7 +88,7 @@
                     <i data-lucide="git-pull-request" class="w-5 h-5 text-emerald-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-emerald-400 mono">0 / 0</span>
+                    <span class="text-3xl font-extrabold text-emerald-400 mono">4 / 4</span>
                 </div>
                 <p class="text-xs text-emerald-400 mt-2">✅ Deterministik bərpa diff-ləri hazır</p>
             </div>
@@ -154,13 +154,115 @@
                     </thead>
                     <tbody class="divide-y divide-gray-800/60 font-medium">
                         
-        <tr>
-            <td colspan="6" class="p-8 text-center text-emerald-400">
-                <div class="flex flex-col items-center justify-center gap-2">
-                    <span class="text-3xl">🎉</span>
-                    <span class="text-sm font-bold">Əla! Heç bir təhlükəsizlik xətası aşkar edilmədi.</span>
-                    <span class="text-xs text-gray-400">Bütün qaydalar və secret skaneri uğurla keçdi (CI/CD Gate: PASSED).</span>
-                </div>
+        <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5">
+                <span class="px-2.5 py-1 rounded text-[11px] font-bold border bg-red-900/60 text-red-300 border-red-700 mono">
+                    CRITICAL (9.5)
+                </span>
+            </td>
+            <td class="p-3.5">
+                <div class="font-bold text-gray-100">OpenAI / LLM API Key</div>
+                <div class="text-[11px] text-gray-400 mono">CWE-798: Use of Hard-coded Credentials</div>
+            </td>
+            <td class="p-3.5 mono text-gray-300">
+                dangerous_app.py:4
+            </td>
+            <td class="p-3.5">
+                <code class="bg-gray-950 px-2 py-1 rounded text-red-300 font-mono text-[11px] block max-w-xs truncate">
+                    OPENAI_API_KEY = "sk-proj-9999888877776666555544443333222211110000"
+                </code>
+            </td>
+            <td class="p-3.5 text-gray-300 text-[11px] max-w-xs">
+                OpenAI API açarlarını heç vaxt repozitoriyaya göndərməyin (.env faylından oxuyun).
+            </td>
+            <td class="p-3.5 text-right">
+                <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-700/50 rounded text-[10px] mono">
+                    Patch Ready
+                </span>
+            </td>
+        </tr>
+        
+        <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5">
+                <span class="px-2.5 py-1 rounded text-[11px] font-bold border bg-red-900/60 text-red-300 border-red-700 mono">
+                    CRITICAL (9.5)
+                </span>
+            </td>
+            <td class="p-3.5">
+                <div class="font-bold text-gray-100">AWS Access Key ID</div>
+                <div class="text-[11px] text-gray-400 mono">CWE-798: Use of Hard-coded Credentials</div>
+            </td>
+            <td class="p-3.5 mono text-gray-300">
+                dangerous_app.py:5
+            </td>
+            <td class="p-3.5">
+                <code class="bg-gray-950 px-2 py-1 rounded text-red-300 font-mono text-[11px] block max-w-xs truncate">
+                    AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+                </code>
+            </td>
+            <td class="p-3.5 text-gray-300 text-[11px] max-w-xs">
+                AWS açarlarını koddan silin və AWS Secrets Manager və ya Environment Variables istifadə edin.
+            </td>
+            <td class="p-3.5 text-right">
+                <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-700/50 rounded text-[10px] mono">
+                    Patch Ready
+                </span>
+            </td>
+        </tr>
+        
+        <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5">
+                <span class="px-2.5 py-1 rounded text-[11px] font-bold border bg-red-900/60 text-red-300 border-red-700 mono">
+                    CRITICAL (9.5)
+                </span>
+            </td>
+            <td class="p-3.5">
+                <div class="font-bold text-gray-100">SQL Injection Riski (String Interpolation in Query)</div>
+                <div class="text-[11px] text-gray-400 mono">CWE-89: Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)</div>
+            </td>
+            <td class="p-3.5 mono text-gray-300">
+                dangerous_app.py:9
+            </td>
+            <td class="p-3.5">
+                <code class="bg-gray-950 px-2 py-1 rounded text-red-300 font-mono text-[11px] block max-w-xs truncate">
+                    return f"SELECT * FROM users WHERE id = {user_id}"
+                </code>
+            </td>
+            <td class="p-3.5 text-gray-300 text-[11px] max-w-xs">
+                Parametrləşdirilmiş sorğulardan (Parameterized Queries / ORM: cursor.execute('SELECT...', (val,))) istifadə edin.
+            </td>
+            <td class="p-3.5 text-right">
+                <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-700/50 rounded text-[10px] mono">
+                    Patch Ready
+                </span>
+            </td>
+        </tr>
+        
+        <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5">
+                <span class="px-2.5 py-1 rounded text-[11px] font-bold border bg-red-900/60 text-red-300 border-red-700 mono">
+                    CRITICAL (9.5)
+                </span>
+            </td>
+            <td class="p-3.5">
+                <div class="font-bold text-gray-100">Təhlükəli eval() / exec() Çağırışı</div>
+                <div class="text-[11px] text-gray-400 mono">CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code (Eval Injection)</div>
+            </td>
+            <td class="p-3.5 mono text-gray-300">
+                dangerous_app.py:13
+            </td>
+            <td class="p-3.5">
+                <code class="bg-gray-950 px-2 py-1 rounded text-red-300 font-mono text-[11px] block max-w-xs truncate">
+                    return eval(code)
+                </code>
+            </td>
+            <td class="p-3.5 text-gray-300 text-[11px] max-w-xs">
+                Dinamik kod icra edən eval()/exec() funksiyalarından çəkinin, ast.literal_eval və ya json.loads istifadə edin.
+            </td>
+            <td class="p-3.5 text-right">
+                <span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-700/50 rounded text-[10px] mono">
+                    Patch Ready
+                </span>
             </td>
         </tr>
         
@@ -171,7 +273,7 @@
 
         <!-- Footer -->
         <footer class="text-center text-xs text-gray-500 py-4">
-            DevSecOps & VAPT Automated Security Gate | 0 AZN Open-Source Architecture | Generated at 2026-09-21T21:14:16.964640+00:00
+            DevSecOps & VAPT Automated Security Gate | 0 AZN Open-Source Architecture | Generated at 2026-10-27T08:24:02.013079+00:00
         </footer>
 
     </div>
@@ -184,10 +286,10 @@
         new Chart(ctxSeverity, {
             type: 'doughnut',
             data: {
-                labels: ["T\u0259hl\u00fck\u0259siz (Clean)"],
+                labels: ["Critical", "High", "Medium", "Low"],
                 datasets: [{
-                    data: [1],
-                    backgroundColor: ["#10b981"],
+                    data: [4, 0, 0, 0],
+                    backgroundColor: ["#ef4444", "#f59e0b", "#3b82f6", "#10b981"],
                     borderWidth: 0
                 }]
             },
@@ -203,10 +305,10 @@
         new Chart(ctxCwe, {
             type: 'bar',
             data: {
-                labels: ["Z\u0259iflik A\u015fkar Edilm\u0259di"],
+                labels: ["CWE-798", "CWE-89", "CWE-95"],
                 datasets: [{
                     label: 'İnsident Sayı',
-                    data: [0],
+                    data: [2, 1, 1],
                     backgroundColor: '#6366f1',
                     borderRadius: 6
                 }]

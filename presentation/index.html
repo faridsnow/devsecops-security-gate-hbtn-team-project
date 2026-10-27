@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevSecOps Automated Security Gate — DemoDay Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #0f1629;
+    --bg-card: rgba(15, 22, 41, 0.7);
+    --accent: #00e5ff;
+    --accent-dim: rgba(0, 229, 255, 0.15);
+    --accent-glow: rgba(0, 229, 255, 0.4);
+    --red: #ff3d71;
+    --red-dim: rgba(255, 61, 113, 0.15);
+    --green: #00e676;
+    --green-dim: rgba(0, 230, 118, 0.15);
+    --orange: #ff9100;
+    --orange-dim: rgba(255, 145, 0, 0.15);
+    --purple: #b388ff;
+    --purple-dim: rgba(179, 136, 255, 0.15);
+    --text: #e8eaf6;
+    --text-dim: #7986cb;
+    --border: rgba(0, 229, 255, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ─── Slide Container ─── */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    background: var(--bg-primary);
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  .slide.exit-left {
+    opacity: 0; transform: translateX(-60px);
+  }
+
+  /* ─── Background Effects ─── */
+  .slide::before {
+    content: '';
+    position: absolute; top: -50%; right: -30%;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .slide > * { position: relative; z-index: 1; }
+
+  /* ─── Grid Lines Background ─── */
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
+  /* ─── Typography ─── */
+  h1 {
+    font-size: 3.2rem; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  h1 .accent { color: var(--accent); }
+  h2 {
+    font-size: 2.2rem; font-weight: 700;
+    margin-bottom: 40px; letter-spacing: -0.01em;
+  }
+  h2 .accent { color: var(--accent); }
+  h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
+  .subtitle {
+    font-size: 1.15rem; color: var(--text-dim);
+    font-weight: 400; margin-bottom: 40px;
+    max-width: 700px; text-align: center; line-height: 1.6;
+  }
+  .tag {
+    display: inline-block;
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 20px;
+  }
+  .tag.cyan { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(0,229,255,0.25); }
+  .tag.red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,113,0.25); }
+  .tag.green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+
+  /* ─── Team Cards ─── */
+  .team-grid {
+    display: flex; gap: 50px;
+    justify-content: center; align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .team-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px 30px 24px;
+    text-align: center;
+    width: 260px;
+    backdrop-filter: blur(12px);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+  .team-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent);
+  }
+  .team-card img {
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--accent);
+    margin-bottom: 18px;
+    box-shadow: 0 0 30px var(--accent-dim);
+  }
+  .team-card .name {
+    font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;
+  }
+  .team-card .role {
+    font-size: 0.85rem; color: var(--text-dim); font-weight: 400;
+  }
+
+  /* ─── Feature Cards ─── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%; max-width: 1100px;
+  }
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    backdrop-filter: blur(12px);
+    transition: border-color 0.3s ease, transform 0.3s ease;
+  }
+  .feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+  .feature-card .icon {
+    font-size: 2rem; margin-bottom: 14px;
+  }
+  .feature-card h3 {
+    font-size: 1.05rem; font-weight: 700;
+    margin-bottom: 10px; color: var(--text);
+  }
+  .feature-card p {
+    font-size: 0.88rem; color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .feature-card .badge {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 8px;
+    font-size: 0.7rem; font-weight: 600;
+    margin-top: 12px; text-transform: uppercase;
+  }
+  .badge.critical { background: var(--red-dim); color: var(--red); }
+  .badge.high { background: var(--orange-dim); color: var(--orange); }
+  .badge.new { background: var(--green-dim); color: var(--green); }
+
+  /* ─── Problem Slide ─── */
+  .problem-container {
+    display: flex; gap: 50px; align-items: center;
+    width: 100%; max-width: 1100px;
+  }
+  .problem-left { flex: 1.2; }
+  .problem-right { flex: 0.8; }
+  .stat-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+    margin-bottom: 16px; backdrop-filter: blur(12px);
+  }
+  .stat-box .number {
+    font-size: 2.5rem; font-weight: 800; color: var(--red);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-box .label {
+    font-size: 0.9rem; color: var(--text-dim); margin-top: 4px;
+  }
+  .problem-list { list-style: none; padding: 0; }
+  .problem-list li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 1rem; color: var(--text);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .problem-list li:last-child { border-bottom: none; }
+  .problem-list .bullet {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); flex-shrink: 0;
+    box-shadow: 0 0 8px var(--red);
+  }
+
+  /* ─── Tech Grid ─── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px; width: 100%; max-width: 1000px;
+  }
+  .tech-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px 20px;
+    text-align: center; backdrop-filter: blur(12px);
+    transition: border-color 0.3s ease;
+  }
+  .tech-card:hover { border-color: var(--accent); }
+  .tech-card .tech-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .tech-card .tech-name {
+    font-size: 0.95rem; font-weight: 600; margin-bottom: 4px;
+  }
+  .tech-card .tech-desc {
+    font-size: 0.78rem; color: var(--text-dim);
+  }
+
+  /* ─── About / Architecture ─── */
+  .about-container {
+    display: flex; gap: 40px; width: 100%; max-width: 1100px;
+    align-items: flex-start;
+  }
+  .about-left { flex: 1; }
+  .about-right { flex: 1; }
+  .pipeline-step {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px; margin-bottom: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px; backdrop-filter: blur(12px);
+    transition: border-color 0.3s ease;
+  }
+  .pipeline-step:hover { border-color: var(--accent); }
+  .pipeline-step .step-num {
+    width: 36px; height: 36px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .pipeline-step .step-text {
+    font-size: 0.95rem; font-weight: 500;
+  }
+  .pipeline-step .step-sub {
+    font-size: 0.8rem; color: var(--text-dim); margin-top: 2px;
+  }
+  .about-description {
+    font-size: 1rem; color: var(--text-dim);
+    line-height: 1.7; margin-bottom: 24px;
+  }
+  .about-highlight {
+    background: var(--bg-card);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+    padding: 18px 22px;
+    font-size: 0.95rem;
+    color: var(--text); line-height: 1.6;
+    margin-top: 20px;
+  }
+
+  /* ─── Future Plans ─── */
+  .future-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px; width: 100%; max-width: 900px;
+  }
+  .future-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px;
+    backdrop-filter: blur(12px);
+    position: relative; overflow: hidden;
+  }
+  .future-card::after {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+  }
+  .future-card .phase {
+    font-size: 0.75rem; font-weight: 600;
+    color: var(--accent); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 8px;
+  }
+  .future-card h3 { margin-bottom: 8px; }
+  .future-card p {
+    font-size: 0.88rem; color: var(--text-dim); line-height: 1.55;
+  }
+
+  /* ─── Navigation ─── */
+  .nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 40px;
+    background: rgba(10, 14, 26, 0.9);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-left { font-size: 0.8rem; color: var(--text-dim); }
+  .nav-center {
+    display: flex; gap: 8px;
+  }
+  .nav-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .nav-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    transform: scale(1.2);
+  }
+  .nav-right { display: flex; gap: 10px; }
+  .nav-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 20px;
+    color: var(--text); font-size: 0.85rem;
+    font-weight: 500; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+  }
+  .nav-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* ─── Title Slide Special ─── */
+  .title-slide {
+    text-align: center;
+  }
+  .title-slide h1 {
+    font-size: 3.6rem;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .title-slide .logo-icon {
+    font-size: 4rem; margin-bottom: 20px;
+    filter: drop-shadow(0 0 20px var(--accent-glow));
+  }
+  .title-meta {
+    display: flex; gap: 30px; justify-content: center;
+    margin-top: 30px;
+  }
+  .title-meta-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.9rem; color: var(--text-dim);
+  }
+
+  /* ─── Thank You Slide ─── */
+  .thankyou h1 {
+    font-size: 4rem;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .contact-row {
+    display: flex; gap: 40px; margin-top: 40px;
+  }
+  .contact-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 24px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.92rem;
+  }
+  .contact-item .ci-icon { font-size: 1.3rem; }
+
+  /* ─── Code Block ─── */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem; line-height: 1.7;
+    color: #c9d1d9; overflow-x: auto;
+    width: 100%; margin-top: 16px;
+  }
+  .code-block .comment { color: #8b949e; }
+  .code-block .keyword { color: #ff7b72; }
+  .code-block .string { color: #a5d6ff; }
+  .code-block .func { color: #d2a8ff; }
+  .code-block .var { color: #ffa657; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .slide { padding: 40px 30px; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.6rem; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .tech-grid { grid-template-columns: repeat(2, 1fr); }
+    .team-grid { gap: 24px; }
+    .team-card { width: 200px; }
+    .problem-container { flex-direction: column; }
+    .about-container { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 1 — Title -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide active title-slide" data-slide="0">
+    <div class="logo-icon">🛡️</div>
+    <span class="tag cyan">Holberton School — Group Project</span>
+    <h1>DevSecOps Automated<br>Security Gate</h1>
+    <p class="subtitle">
+      CI/CD Pipeline-da Real-Time Vulnerability Scanning,
+      Secret Detection və Software Composition Analysis
+    </p>
+    <div class="title-meta">
+      <div class="title-meta-item">📅 Oktyabr 2026</div>
+      <div class="title-meta-item">🐍 Python + GitHub Actions</div>
+      <div class="title-meta-item">🔒 Zero-Budget DevSecOps</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 2 — Team -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="1">
+    <span class="tag cyan">Komanda</span>
+    <h2>Biz Kimik<span class="accent">?</span></h2>
+    <div class="team-grid">
+      <div class="team-card">
+        <img src="farid.jpg" alt="Fərid Mehtizadə">
+        <div class="name">Fərid Mehtizadə</div>
+      </div>
+      <div class="team-card">
+        <img src="rinad.jpg" alt="Rinad Əliyev">
+        <div class="name">Rinad Əliyev</div>
+      </div>
+      <div class="team-card">
+        <img src="ulvi.jpg" alt="Ülvi Əliyev">
+        <div class="name">Ülvi Əliyev</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 3 — Problem -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="2">
+    <span class="tag red">Problem</span>
+    <h2>Niyə Bu Layihəyə <span class="accent">Ehtiyac Var?</span></h2>
+    <div class="problem-container">
+      <div class="problem-left">
+        <ul class="problem-list">
+          <li>
+            <span class="bullet"></span>
+            <div>
+              <strong>2024 — Mercedes-Benz Leak:</strong> Developer GitHub-a
+              şirkətin daxili API key-lərini push etdi. Bütün source code, dizayn
+              sxemləri və cloud infrastructure sızdı.
+            </div>
+          </li>
+          <li>
+            <span class="bullet"></span>
+            <div>
+              <strong>Hücumların 80%-i</strong> third-party dependency-lərdəki
+              CVE-lərdən (bilinen vulnerability) qaynaqlanır.
+            </div>
+          </li>
+          <li>
+            <span class="bullet"></span>
+            <div>
+              Kommersiya alətləri <strong>(SonarQube, Snyk, Checkmarx)</strong> ildə
+              <strong>$20,000+</strong> başa gəlir. Kiçik komandalar üçün əlçatmazdır.
+            </div>
+          </li>
+          <li>
+            <span class="bullet"></span>
+            <div>
+              Manual code review insani xətaya meyillidir — developer
+              yorğunluğu, deadline pressure, gözdən qaçırma.
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="problem-right">
+        <div class="stat-box">
+          <div class="number">$4.88M</div>
+          <div class="label">Orta data breach maliyyəti (IBM 2024 Report)</div>
+        </div>
+        <div class="stat-box">
+          <div class="number">277 gün</div>
+          <div class="label">Breach-in aşkarlanması üçün orta vaxt</div>
+        </div>
+        <div class="stat-box">
+          <div class="number">74%</div>
+          <div class="label">Codebase-lərin open-source dependency istifadəsi</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 4 — About / Architecture -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="3">
+    <span class="tag cyan">Layihə Haqqında</span>
+    <h2>Necə <span class="accent">İşləyir?</span></h2>
+    <div class="about-container">
+      <div class="about-left">
+        <p class="about-description">
+          <strong>DevSecOps Automated Security Gate</strong> — developer kod push edən anda
+          avtomatik işə düşən zero-cost security pipeline-dır. Sistem kodu üç müstəqil
+          engine ilə scan edir və CVSS v3.1 scoring-ə əsasən gate keçid qərarı verir.
+        </p>
+        <div class="about-highlight">
+          💡 <strong>5 müstəqil Python engine</strong> sıfırdan yazılıb.
+          Heç bir hazır kommersiya aləti istifadə olunmayıb (Semgrep, Trivy, SonarQube yoxdur).
+          Tam custom, tam portable.
+        </div>
+        <div class="about-highlight" style="border-left-color: var(--green); margin-top: 14px;">
+          🏛️ <strong>OWASP Top 10</strong>, <strong>NIST SP 800-218</strong> və
+          <strong>CIS Benchmarks</strong> standartlarına uyğundur.
+        </div>
+      </div>
+      <div class="about-right">
+        <div class="pipeline-step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-text">git push origin main</div>
+            <div class="step-sub">Developer kod push edir</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-text">GitHub Actions Trigger</div>
+            <div class="step-sub">CI/CD Pipeline avtomatik işə düşür</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-text">Secret + SAST + SCA Scan</div>
+            <div class="step-sub">Üç mühərrik paralel scan edir</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-text">VAPT Normalization & CVSS Scoring</div>
+            <div class="step-sub">Tapıntılar deduplicate + risk score</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-text">Gate Decision & Alert</div>
+            <div class="step-sub">BLOCKED ❌ / PASSED ✅ + Telegram + Dashboard</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 5 — Features -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="4">
+    <span class="tag green">Features</span>
+    <h2>Əsas <span class="accent">Xüsusiyyətlər</span></h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">🔑</div>
+        <h3>Secret Scanning</h3>
+        <p>8 regex rule ilə AWS Key, OpenAI API Key, GitHub Token, SSH Private Key, hardcoded password aşkarlayır. Comment-lərin içini belə scan edir.</p>
+        <span class="badge critical">Critical</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🛡️</div>
+        <h3>SAST Engine</h3>
+        <p>SQL Injection (f-string & concat), eval/exec RCE, os.system Command Injection, Pickle Deserialization, Weak Hash (MD5/SHA1), 0.0.0.0 binding.</p>
+        <span class="badge high">6 Rule</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📦</div>
+        <h3>SCA Scanner</h3>
+        <p>requirements.txt və package.json parse edir, hər package-i Google OSV.dev API ilə global CVE database-ə qarşı yoxlayır. CVE-based deduplication.</p>
+        <span class="badge new">New</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📊</div>
+        <h3>Live Dashboard</h3>
+        <p>Real-time web dashboard: CVSS risk score, severity chart, scan history, finding details. Render.com-da deploy, auto-refresh hər 30 saniyə.</p>
+        <span class="badge new">Live</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🚨</div>
+        <h3>Telegram Alerts</h3>
+        <p>Hər scan nəticəsini Telegram channel-ə göndərir. BLOCKED olduqda dərhal bildiriş — komanda real-time xəbərdar olur.</p>
+        <span class="badge high">Instant</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔧</div>
+        <h3>Auto-Remediation</h3>
+        <p>Hər vulnerability üçün konkret fix recommendation generasiya edir. Remediation engine diff-format patch hazırlayır.</p>
+        <span class="badge new">Smart</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 6 — Technologies -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="5">
+    <span class="tag cyan">Tech Stack</span>
+    <h2>İstifadə Olunan <span class="accent">Texnologiyalar</span></h2>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🐍</div>
+        <div class="tech-name">Python 3.11</div>
+        <div class="tech-desc">Əsas scan engine-lər, VAPT normalizer, remediation</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">⚡</div>
+        <div class="tech-name">GitHub Actions</div>
+        <div class="tech-desc">CI/CD pipeline orchestration, auto-trigger on push</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🌐</div>
+        <div class="tech-name">Flask</div>
+        <div class="tech-desc">Live dashboard backend, REST API, webhook receiver</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔍</div>
+        <div class="tech-name">OSV.dev API</div>
+        <div class="tech-desc">Google-un open-source vulnerability database — SCA üçün</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📊</div>
+        <div class="tech-name">Chart.js</div>
+        <div class="tech-desc">Dashboard qrafikləri — severity distribution, scan history</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🎨</div>
+        <div class="tech-name">Tailwind CSS</div>
+        <div class="tech-desc">Dashboard responsive UI, dark theme</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🚀</div>
+        <div class="tech-name">Render.com</div>
+        <div class="tech-desc">Dashboard deployment — free tier, gunicorn</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📱</div>
+        <div class="tech-name">Telegram Bot API</div>
+        <div class="tech-desc">Real-time alert notification channel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 7 — Future Plans -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="6">
+    <span class="tag cyan">Gələcək Planlar</span>
+    <h2>Roadmap <span class="accent">& Vision</span></h2>
+    <div class="future-grid">
+      <div class="future-card">
+        <div class="phase">Phase 1 — Q4 2026</div>
+        <h3>🌐 DAST Integration</h3>
+        <p>Dynamic Application Security Testing — deploy olunmuş app-a real HTTP
+        request-lərlə hücum simulyasiyası. HTTP Security Headers, CORS
+        misconfiguration, open redirect yoxlaması.</p>
+      </div>
+      <div class="future-card">
+        <div class="phase">Phase 2 — Q1 2027</div>
+        <h3>🤖 AI-Powered Analysis</h3>
+        <p>Gemini Flash API ilə hybrid scan: regex + AI. False positive azaltma,
+        business logic vulnerability aşkarlama, smart auto-fix suggestion
+        generasiyası.</p>
+      </div>
+      <div class="future-card">
+        <div class="phase">Phase 3 — Q2 2027</div>
+        <h3>🌍 Multi-Language Support</h3>
+        <p>JavaScript/TypeScript, Go, Java, C# dəstəyi.
+        Hər dil üçün language-specific SAST rule-lar.
+        Polyglot monorepo scan imkanı.</p>
+      </div>
+      <div class="future-card">
+        <div class="phase">Phase 4 — Q3 2027</div>
+        <h3>☁️ SaaS Platform</h3>
+        <p>Multi-tenant cloud platform: team dashboard, organization-wide
+        policy management, compliance reporting (SOC 2, ISO 27001),
+        GitHub/GitLab App Marketplace integration.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SLIDE 8 — Thank You -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="slide thankyou" data-slide="7">
+    <div class="logo-icon" style="font-size:3.5rem; margin-bottom:20px;">🛡️</div>
+    <h1>Təşəkkürlər!</h1>
+    <p class="subtitle" style="margin-top:12px;">
+      Suallarınız varsa, məmnuniyyətlə cavablandırarıq.
+    </p>
+    <div class="contact-row">
+      <div class="contact-item">
+        <span class="ci-icon">💻</span>
+        <div>
+          <div style="font-weight:600;">GitHub Repository</div>
+          <div style="font-size:0.82rem; color:var(--text-dim);">github.com/faridsnow/devsecops-security-gate-hbtn-team-project</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <span class="ci-icon">📊</span>
+        <div>
+          <div style="font-weight:600;">Live Dashboard</div>
+          <div style="font-size:0.82rem; color:var(--text-dim);"><a href="https://devsecops-security-gate-hbtn-team-project-g7ag.onrender.com/" target="_blank" style="color:var(--accent); text-decoration:none;">devsecops-security-gate-hbtn-team-project-g7ag.onrender.com</a></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:50px; padding:14px 28px; border:1px solid var(--accent); border-radius:12px; background:var(--accent-dim); font-size:0.95rem;">
+      🎯 <strong>Live Demo</strong> — İndi canlı nümayiş göstərə bilərik!
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Navigation Bar ─── -->
+<div class="nav-bar">
+  <div class="nav-left">
+    🛡️ DevSecOps Security Gate — DemoDay 2026
+  </div>
+  <div class="nav-center" id="navDots"></div>
+  <div class="nav-right">
+    <button class="nav-btn" onclick="prevSlide()">← Əvvəl</button>
+    <button class="nav-btn" onclick="nextSlide()">Sonra →</button>
+  </div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.getElementById('navDots');
+  let current = 0;
+
+  // Create nav dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  });
+
+  function goToSlide(n) {
+    if (n < 0 || n >= slides.length || n === current) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit-left');
+    setTimeout(() => slides[current === n ? current : (current)].classList.remove('exit-left'), 500);
+
+    const prev = current;
+    current = n;
+
+    slides[current].classList.add('active');
+
+    // Update dots
+    document.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+
+    // Clean up previous
+    setTimeout(() => {
+      slides[prev].classList.remove('exit-left');
+    }, 500);
+  }
+
+  function nextSlide() { goToSlide(current + 1); }
+  function prevSlide() { goToSlide(current - 1); }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault(); nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+      e.preventDefault(); prevSlide();
+    } else if (e.key === 'Home') {
+      e.preventDefault(); goToSlide(0);
+    } else if (e.key === 'End') {
+      e.preventDefault(); goToSlide(slides.length - 1);
+    }
+    // Number keys 1-8
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= slides.length) {
+      e.preventDefault(); goToSlide(num - 1);
+    }
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? nextSlide() : prevSlide();
+    }
+  });
+</script>
+
+</body>
+</html>

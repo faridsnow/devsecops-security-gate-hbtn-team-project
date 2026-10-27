@@ -56,10 +56,19 @@ jobs:
           findings = report.get('findings', [])
           stats = report.get('stats', {})
 
+          # Files scanned from raw report
+          files_scanned = stats.get('raw_findings_count', 0)
+          if os.path.exists('security_report.json'):
+              try:
+                  with open('security_report.json', 'r', encoding='utf-8') as sf:
+                      files_scanned = json.load(sf).get('summary', {}).get('files_scanned', files_scanned)
+              except Exception:
+                  pass
+
           # Git info
           commit = subprocess.getoutput('git rev-parse HEAD').strip()
-          branch = subprocess.getoutput('git rev-parse --abbrev-ref HEAD').strip()
-          author = subprocess.getoutput('git log -1 --format=%an').strip()
+          branch = os.environ.get('GITHUB_REF_NAME') or subprocess.getoutput('git rev-parse --abbrev-ref HEAD').strip()
+          author = subprocess.getoutput('git log -1 --format=%an').strip() or os.environ.get('GITHUB_ACTOR', 'N/A')
           message = subprocess.getoutput('git log -1 --format=%s').strip()
 
           # Build dashboard payload
@@ -68,7 +77,7 @@ jobs:
               'scanner_version': '1.0.0',
               'status': os.environ.get('SCAN_STATUS', 'PASSED'),
               'summary': {
-                  'files_scanned': stats.get('raw_findings_count', 0) + stats.get('unique_findings_count', 0),
+                  'files_scanned': files_scanned,
                   'total_findings': stats.get('unique_findings_count', 0),
                   'critical': stats.get('critical_count', 0),
                   'high': stats.get('high_count', 0),

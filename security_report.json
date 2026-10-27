@@ -1,14 +1,55 @@
 {
-  "timestamp": "2026-09-21T21:14:16.950643+00:00",
+  "timestamp": "2026-10-27T08:24:01.987534+00:00",
   "scanner_version": "1.0.0",
-  "status": "PASSED",
+  "status": "FAILED",
   "summary": {
-    "files_scanned": 14,
-    "total_findings": 0,
-    "critical": 0,
+    "files_scanned": 15,
+    "total_findings": 4,
+    "critical": 4,
     "high": 0,
     "medium": 0,
     "low": 0
   },
-  "findings": []
+  "findings": [
+    {
+      "id": "SEC-003",
+      "name": "OpenAI / LLM API Key",
+      "category": "Secret Leak",
+      "severity": "CRITICAL",
+      "file": "dangerous_app.py",
+      "line": 4,
+      "code_snippet": "OPENAI_API_KEY = \"sk-proj-9999888877776666555544443333222211110000\"",
+      "remediation": "OpenAI API açarlarını heç vaxt repozitoriyaya göndərməyin (.env faylından oxuyun)."
+    },
+    {
+      "id": "SEC-001",
+      "name": "AWS Access Key ID",
+      "category": "Secret Leak",
+      "severity": "CRITICAL",
+      "file": "dangerous_app.py",
+      "line": 5,
+      "code_snippet": "AWS_ACCESS_KEY = \"AKIAIOSFODNN7EXAMPLE\"",
+      "remediation": "AWS açarlarını koddan silin və AWS Secrets Manager və ya Environment Variables istifadə edin."
+    },
+    {
+      "id": "SAST-001",
+      "name": "SQL Injection Riski (String Interpolation in Query)",
+      "category": "SAST Vulnerability",
+      "severity": "CRITICAL",
+      "file": "dangerous_app.py",
+      "line": 9,
+      "code_snippet": "return f\"SELECT * FROM users WHERE id = {user_id}\"",
+      "remediation": "Parametrləşdirilmiş sorğulardan (Parameterized Queries / ORM: cursor.execute('SELECT...', (val,))) istifadə edin."
+    },
+    {
+      "id": "SAST-002",
+      "name": "Təhlükəli eval() / exec() Çağırışı",
+      "category": "SAST Vulnerability",
+      "severity": "CRITICAL",
+      "file": "dangerous_app.py",
+      "line": 13,
+      "code_snippet": "return eval(code)",
+      "remediation": "Dinamik kod icra edən eval()/exec() funksiyalarından çəkinin, ast.literal_eval və ya json.loads istifadə edin."
+    }
+  ]
 }
