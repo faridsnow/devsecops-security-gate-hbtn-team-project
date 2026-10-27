@@ -23,5 +23,5 @@ Thumbs.db
 .coverage
 
 # Runtime Application Data & Scan History
-data/scan_history.json
+!data/scan_history.json
 !data/latest_report.json
