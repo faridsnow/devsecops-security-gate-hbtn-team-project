@@ -3,6 +3,7 @@ services:
     name: devsecops-dashboard
     runtime: python
     plan: free
+    autoDeploy: false
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
