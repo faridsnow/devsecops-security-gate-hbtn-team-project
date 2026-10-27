@@ -54,7 +54,9 @@ def load_report():
     if REPORT_FILE.exists():
         try:
             with open(REPORT_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if isinstance(data, dict) and isinstance(data.get("summary"), dict) and isinstance(data.get("git_info"), dict):
+                    return data
         except (json.JSONDecodeError, IOError):
             pass
     return get_default_report()
