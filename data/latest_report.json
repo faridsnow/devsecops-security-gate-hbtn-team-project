@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-28T22:51:08.490967+00:00",
+  "timestamp": "2026-10-28T22:51:55.565620+00:00",
   "scanner_version": "1.0.0",
   "status": "BLOCKED",
   "summary": {
-    "files_scanned": 15,
+    "files_scanned": 12,
     "total_findings": 4,
     "critical": 4,
     "high": 0,
@@ -69,9 +69,9 @@
     }
   ],
   "git_info": {
-    "commit": "60774df",
+    "commit": "af76c04",
     "branch": "main",
     "author": "l0gicae",
-    "message": "feat: junior dev adds insecure code and secrets"
+    "message": "fix: bulletproof dashboard auto-sync, disable autoDeploy rebuilds, add GitHub Actions run status fallback"
   }
 }
