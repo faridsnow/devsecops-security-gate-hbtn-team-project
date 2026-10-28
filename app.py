@@ -162,6 +162,7 @@ def load_report():
 
             try:
                 save_report(report)
+                save_to_history(report)
             except Exception:
                 pass
 
@@ -177,17 +178,18 @@ def save_report(data):
 
 def load_history():
     """Skan tarixçəsini yükləyir."""
+    history = []
     if HISTORY_FILE.exists():
         try:
             with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                history = json.load(f)
-                if isinstance(history, list) and len(history) > 0:
-                    return history
+                data = json.load(f)
+                if isinstance(data, list):
+                    history = data
         except (json.JSONDecodeError, IOError):
             pass
 
     # Əgər tarixçə boşdursa, GitHub Actions runs-dan doldur
-    if not app.config.get("TESTING") and os.environ.get("FLASK_ENV") != "testing":
+    if not history and not app.config.get("TESTING") and os.environ.get("FLASK_ENV") != "testing":
         try:
             url = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs?per_page=10&branch=main"
             req = urllib.request.Request(url, headers={"User-Agent": "DevSecOps-Live-Dashboard"})
@@ -213,11 +215,44 @@ def load_history():
                         })
                     if history:
                         save_history_to_file(history)
-                        return history
         except Exception:
             pass
 
-    return []
+    # Əgər mövcud aktiv hesabat varsa, onun tarixçənin ilk sətrində olduğunu təmin et
+    if REPORT_FILE.exists():
+        try:
+            with open(REPORT_FILE, "r", encoding="utf-8") as f:
+                cur_rep = json.load(f)
+            if isinstance(cur_rep, dict):
+                c_git = cur_rep.get("git_info") or {}
+                c_commit = str(c_git.get("commit") or "")[:7]
+                if c_commit and c_commit not in ("N/A", ""):
+                    c_status = cur_rep.get("status") or "UNKNOWN"
+                    c_summary = cur_rep.get("summary") or {}
+                    top_entry = {
+                        "timestamp": cur_rep.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+                        "status": c_status,
+                        "total_findings": c_summary.get("total_findings", 0),
+                        "critical": c_summary.get("critical", 0),
+                        "high": c_summary.get("high", 0),
+                        "commit": c_commit,
+                        "branch": str(c_git.get("branch") or "main"),
+                        "message": str(c_git.get("message") or "")[:60]
+                    }
+                    if not history:
+                        history = [top_entry]
+                        save_history_to_file(history)
+                    elif history[0].get("commit") != c_commit:
+                        history.insert(0, top_entry)
+                        history = history[:20]
+                        save_history_to_file(history)
+                    elif history[0].get("status") != c_status:
+                        history[0] = top_entry
+                        save_history_to_file(history)
+        except Exception:
+            pass
+
+    return history
 
 
 def save_history_to_file(history):
