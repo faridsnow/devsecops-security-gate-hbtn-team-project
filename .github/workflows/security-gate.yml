@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "**" ]
 
+permissions:
+  contents: write
+
 jobs:
   security-audit:
     name: "Static Security & Secret Audit"
@@ -14,26 +17,42 @@ jobs:
     steps:
       - name: "📥 Repozitoriyanı Yüklə (Checkout)"
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "⏭️ Skip CI commits"
+        id: skip_check
+        run: |
+          COMMIT_MSG=$(git log -1 --format='%s')
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping CI for auto-commit: $COMMIT_MSG"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: "🐍 Python 3.11 Mühitini Quraşdır"
+        if: steps.skip_check.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: "📦 Asılılıqları Yüklə (Install Dependencies)"
+        if: steps.skip_check.outputs.skip != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install requests colorama
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: "🔍 Təhlükəsizlik və Secret Skanını İcra Et"
+        if: steps.skip_check.outputs.skip != 'true'
         id: security_scan
         continue-on-error: true
         run: |
           python scripts/security_scanner.py --target . --output security_report.json
 
       - name: "📊 Dashboard-a Nəticəni Göndər (Webhook)"
-        if: always()
+        if: always() && steps.skip_check.outputs.skip != 'true'
         env:
           DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
           DASHBOARD_API_KEY: ${{ secrets.DASHBOARD_API_KEY }}
@@ -132,8 +151,107 @@ jobs:
             echo "Skipping dashboard webhook (no report or URL)"
           fi
 
+      - name: "💾 Dashboard Data Fayllarını Repo-ya Sinxronla"
+        if: always() && steps.skip_check.outputs.skip != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f normalized_report.json ]; then
+            export SCAN_STATUS="PASSED"
+            if [ "${{ steps.security_scan.outcome }}" == "failure" ]; then
+              export SCAN_STATUS="BLOCKED"
+            fi
+
+            python3 -c "
+          import json, os, subprocess
+          from datetime import datetime, timezone
+
+          with open('normalized_report.json', 'r', encoding='utf-8') as f:
+              report = json.load(f)
+
+          findings = report.get('findings', [])
+          stats = report.get('stats', {})
+
+          files_scanned = stats.get('raw_findings_count', 0)
+          if os.path.exists('security_report.json'):
+              try:
+                  with open('security_report.json', 'r', encoding='utf-8') as sf:
+                      files_scanned = json.load(sf).get('summary', {}).get('files_scanned', files_scanned)
+              except Exception:
+                  pass
+
+          commit = subprocess.getoutput('git rev-parse --short HEAD').strip()
+          branch = os.environ.get('GITHUB_REF_NAME', 'main')
+          author = subprocess.getoutput('git log -1 --format=%an').strip() or 'N/A'
+          message = subprocess.getoutput('git log -1 --format=%s').strip()
+
+          payload = {
+              'timestamp': datetime.now(timezone.utc).isoformat(),
+              'scanner_version': '1.0.0',
+              'status': os.environ.get('SCAN_STATUS', 'PASSED'),
+              'summary': {
+                  'files_scanned': files_scanned,
+                  'total_findings': stats.get('unique_findings_count', 0),
+                  'critical': stats.get('critical_count', 0),
+                  'high': stats.get('high_count', 0),
+                  'medium': stats.get('medium_count', 0),
+                  'low': stats.get('low_count', 0)
+              },
+              'findings': findings,
+              'git_info': {
+                  'commit': commit,
+                  'branch': branch,
+                  'author': author,
+                  'message': message
+              }
+          }
+
+          os.makedirs('data', exist_ok=True)
+          with open('data/latest_report.json', 'w', encoding='utf-8') as f:
+              json.dump(payload, f, indent=2, ensure_ascii=False)
+
+          # Update scan history
+          history = []
+          if os.path.exists('data/scan_history.json'):
+              try:
+                  with open('data/scan_history.json', 'r', encoding='utf-8') as f:
+                      history = json.load(f)
+              except Exception:
+                  pass
+
+          entry = {
+              'timestamp': payload['timestamp'],
+              'status': payload['status'],
+              'total_findings': payload['summary']['total_findings'],
+              'critical': payload['summary']['critical'],
+              'high': payload['summary']['high'],
+              'commit': commit,
+              'branch': branch,
+              'message': message[:60]
+          }
+          history.insert(0, entry)
+          history = history[:20]
+          with open('data/scan_history.json', 'w', encoding='utf-8') as f:
+              json.dump(history, f, indent=2, ensure_ascii=False)
+
+          print(f'Data files updated: status={payload[\"status\"]}, findings={payload[\"summary\"][\"total_findings\"]}')
+          "
+
+            # Commit and push data files back to repo
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/latest_report.json data/scan_history.json
+            if git diff --cached --quiet; then
+              echo "No data changes to commit"
+            else
+              git commit -m "ci: auto-sync dashboard data from scan [skip ci]"
+              git push origin HEAD:${{ github.ref_name }} || git push || true
+              echo "Dashboard data synced to repo"
+            fi
+          fi
+
       - name: "📱 Telegram Alert & Xəbərdarlıq Bildirişi Göndər"
-        if: always()
+        if: always() && steps.skip_check.outputs.skip != 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -141,7 +259,7 @@ jobs:
           python scripts/telegram_notifier.py --report security_report.json
 
       - name: "📊 GitHub Step Summary Hesabatını Əlavə Et"
-        if: always()
+        if: always() && steps.skip_check.outputs.skip != 'true'
         run: |
           if [ -f security_report.json ]; then
             echo "## 🛡️ DevSecOps Pipeline Security Gate Hesabatı" >> $GITHUB_STEP_SUMMARY
@@ -154,7 +272,7 @@ jobs:
           fi
 
       - name: "🛑 PR / CI Bloklama Yoxlanışı (Enforce Gate)"
-        if: steps.security_scan.outcome == 'failure'
+        if: steps.skip_check.outputs.skip != 'true' && steps.security_scan.outcome == 'failure'
         run: |
           echo "::error::❌ Kritik təhlükəsizlik xətaları və ya sızmış gizli açarlar aşkarlandığı üçün bu PR / Push bloklandı!"
           exit 1

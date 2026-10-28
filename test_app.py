@@ -19,8 +19,18 @@ from app import app, REPORT_FILE, HISTORY_FILE, API_KEY
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
+    rep_backup = REPORT_FILE.read_bytes() if REPORT_FILE.exists() else None
+    hist_backup = HISTORY_FILE.read_bytes() if HISTORY_FILE.exists() else None
     with app.test_client() as client:
         yield client
+    if rep_backup is not None:
+        REPORT_FILE.write_bytes(rep_backup)
+    elif REPORT_FILE.exists():
+        REPORT_FILE.unlink()
+    if hist_backup is not None:
+        HISTORY_FILE.write_bytes(hist_backup)
+    elif HISTORY_FILE.exists():
+        HISTORY_FILE.unlink()
 
 
 @pytest.fixture
@@ -165,6 +175,17 @@ def test_post_webhook_null_or_sparse_fields(client):
     )
     assert response.status_code == 200
     assert response.get_json()["status"] == "ok"
+
+
+def test_load_report_with_fallback(client):
+    """load_report returns valid structure and default when file is empty/missing"""
+    from app import load_report, REPORT_FILE
+    # ensure it returns a valid dict with status, summary, git_info
+    rep = load_report()
+    assert isinstance(rep, dict)
+    assert "status" in rep
+    assert "summary" in rep
+    assert "git_info" in rep
 
 
 if __name__ == "__main__":

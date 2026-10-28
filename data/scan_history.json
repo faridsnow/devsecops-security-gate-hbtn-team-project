@@ -1,6 +1,26 @@
 [
   {
-    "timestamp": "2026-10-28T22:35:00.000000+00:00",
+    "timestamp": "2026-10-28T22:51:08.490967+00:00",
+    "status": "BLOCKED",
+    "total_findings": 4,
+    "critical": 4,
+    "high": 0,
+    "commit": "60774df",
+    "branch": "main",
+    "message": "feat: junior dev adds insecure code and secrets"
+  },
+  {
+    "timestamp": "2026-10-28T22:38:57Z",
+    "status": "PASSED",
+    "total_findings": 0,
+    "critical": 0,
+    "high": 0,
+    "commit": "962afba",
+    "branch": "main",
+    "message": "fix: sync dashboard data files with latest PASSED scan result"
+  },
+  {
+    "timestamp": "2026-10-28T22:34:48Z",
     "status": "PASSED",
     "total_findings": 0,
     "critical": 0,
@@ -10,42 +30,12 @@
     "message": "fix: sanitize code, remove secrets, secure SQL and AST parser"
   },
   {
-    "timestamp": "2026-10-28T22:25:33.000000+00:00",
+    "timestamp": "2026-10-28T22:25:22Z",
     "status": "BLOCKED",
     "total_findings": 4,
     "critical": 4,
     "high": 0,
     "commit": "16156e0",
-    "branch": "main",
-    "message": "feat: junior dev adds insecure code and secrets"
-  },
-  {
-    "timestamp": "2026-10-27T11:56:17.000000+00:00",
-    "status": "PASSED",
-    "total_findings": 0,
-    "critical": 0,
-    "high": 0,
-    "commit": "8e03fe8",
-    "branch": "main",
-    "message": "fix: sanitize code, remove secrets, secure SQL and AST parser"
-  },
-  {
-    "timestamp": "2026-10-27T11:52:16.000000+00:00",
-    "status": "BLOCKED",
-    "total_findings": 4,
-    "critical": 4,
-    "high": 0,
-    "commit": "74b11e2",
-    "branch": "main",
-    "message": "feat: junior dev adds insecure code and secrets"
-  },
-  {
-    "timestamp": "2026-10-27T08:24:02.013079+00:00",
-    "status": "BLOCKED",
-    "total_findings": 4,
-    "critical": 4,
-    "high": 0,
-    "commit": "d855666",
     "branch": "main",
     "message": "feat: junior dev adds insecure code and secrets"
   }
