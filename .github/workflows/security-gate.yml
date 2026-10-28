@@ -46,7 +46,7 @@ jobs:
             fi
 
             python3 -c "
-          import json, os, subprocess, sys
+          import json, os, subprocess, sys, time
           from datetime import datetime, timezone
 
           # Load normalized report
@@ -93,15 +93,40 @@ jobs:
               }
           }
 
-          # Send to dashboard
           import requests
-          url = os.environ['DASHBOARD_URL'].rstrip('/') + '/api/webhook'
+
+          base_url = os.environ['DASHBOARD_URL'].rstrip('/')
+          webhook_url = base_url + '/api/webhook'
+          health_url = base_url + '/api/health'
           headers = {'X-API-Key': os.environ.get('DASHBOARD_API_KEY', ''), 'Content-Type': 'application/json'}
-          try:
-              r = requests.post(url, json=payload, headers=headers, timeout=10)
-              print(f'Dashboard webhook: {r.status_code} - {r.text}')
-          except Exception as e:
-              print(f'Dashboard webhook failed (non-critical): {e}')
+
+          # Wake up the Render free-tier service before sending the webhook
+          print('Waking up Render service...')
+          for attempt in range(3):
+              try:
+                  r = requests.get(health_url, timeout=60)
+                  print(f'Health check: {r.status_code}')
+                  break
+              except Exception as e:
+                  print(f'Wake-up attempt {attempt+1}/3 failed: {e}')
+                  if attempt < 2:
+                      time.sleep(5)
+
+          # Send webhook with retry
+          sent = False
+          for attempt in range(3):
+              try:
+                  r = requests.post(webhook_url, json=payload, headers=headers, timeout=30)
+                  print(f'Dashboard webhook: {r.status_code} - {r.text}')
+                  sent = True
+                  break
+              except Exception as e:
+                  print(f'Webhook attempt {attempt+1}/3 failed: {e}')
+                  if attempt < 2:
+                      time.sleep(5)
+
+          if not sent:
+              print('WARNING: All webhook attempts failed. Dashboard was not updated.')
           "
           else
             echo "Skipping dashboard webhook (no report or URL)"
