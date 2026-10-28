@@ -31,6 +31,17 @@ _last_gh_check = 0
 _cached_gh_run = None
 
 
+def parse_iso_datetime(dt_str):
+    """ISO formatlı vaxt sətrini UTC datetime obyektinə çevirir."""
+    if not dt_str:
+        return None
+    try:
+        clean = str(dt_str).strip().replace("Z", "+00:00")
+        return datetime.fromisoformat(clean)
+    except Exception:
+        return None
+
+
 def check_github_latest_run():
     """GitHub Actions API-dən ən son workflow run məlumatını əldə edir (Rate-limit qorunması ilə)."""
     global _last_gh_check, _cached_gh_run
@@ -104,18 +115,32 @@ def load_report():
         gh_commit = (latest_run.get("head_sha") or "")[:7]
         local_commit = str(report.get("git_info", {}).get("commit", ""))[:7]
 
-        # Əgər lokal hesabat GitHub-dakı son skandan geridədirsə və ya boşdursa:
-        if gh_commit and (local_commit != gh_commit or report.get("status") == "NO_DATA"):
+        gh_time = parse_iso_datetime(latest_run.get("created_at") or latest_run.get("updated_at"))
+        local_time = parse_iso_datetime(report.get("timestamp"))
+
+        # Yalnız lokal hesabat boş olduqda (NO_DATA / commit yoxdur)
+        # və ya GitHub run-ı vaxt baxımından lokal hesabatdan daha yeni olduqda sinxronlaşdırırıq.
+        # Bu, yenicə qəbul edilmiş webhook hesabatının köhnə keşlə əzilməsinin qarşısını alır.
+        should_sync = False
+        if report.get("status") == "NO_DATA" or local_commit in ("", "N/A"):
+            should_sync = True
+        elif gh_commit and local_commit != gh_commit:
+            if gh_time and local_time and gh_time > local_time:
+                should_sync = True
+
+        if should_sync and gh_commit:
             conclusion = latest_run.get("conclusion")
             is_blocked = (conclusion == "failure")
             head_commit = latest_run.get("head_commit") or {}
+            actor = (latest_run.get("actor") or {}).get("login")
+            author_name = (head_commit.get("author") or {}).get("name") or actor or "CI/CD Gate"
 
             report["status"] = "BLOCKED" if is_blocked else "PASSED"
             report["timestamp"] = latest_run.get("created_at") or report.get("timestamp")
             report["git_info"] = {
                 "commit": gh_commit,
                 "branch": latest_run.get("head_branch") or "main",
-                "author": (head_commit.get("author") or {}).get("name") or "faridsnow",
+                "author": author_name,
                 "message": head_commit.get("message") or latest_run.get("display_title") or "Scan update"
             }
 
@@ -218,7 +243,11 @@ def save_to_history(report):
         "branch": str(git_info.get("branch") or "N/A"),
         "message": str(msg_val)[:60]
     }
-    history.insert(0, entry)
+    # Təkrarlanan eyni kommit və status girişini deduplikasiya edirik
+    if history and history[0].get("commit") == entry["commit"] and history[0].get("status") == entry["status"]:
+        history[0] = entry
+    else:
+        history.insert(0, entry)
     history = history[:20]  # Son 20 nəticə
     save_history_to_file(history)
 
@@ -231,21 +260,31 @@ def dashboard():
     return render_template("index.html")
 
 
+def make_no_cache_response(data):
+    """Qaytarılan cavaba no-cache başlıqları əlavə edir."""
+    resp = jsonify(data)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
+
+
 @app.route("/api/report")
 def get_report():
     """Son scan nəticəsini JSON olaraq qaytarır."""
-    return jsonify(load_report())
+    return make_no_cache_response(load_report())
 
 
 @app.route("/api/history")
 def get_history():
     """Skan tarixçəsini qaytarır."""
-    return jsonify(load_history())
+    return make_no_cache_response(load_history())
 
 
 @app.route("/api/webhook", methods=["POST"])
 def receive_webhook():
     """GitHub Actions-dan scan nəticəsini qəbul edir."""
+    global _cached_gh_run, _last_gh_check
+
     # API key yoxlaması
     auth_key = request.headers.get("X-API-Key", "")
     if not hmac_compare(auth_key, API_KEY):
@@ -254,6 +293,10 @@ def receive_webhook():
     data = request.get_json(force=True, silent=True)
     if not data or not isinstance(data, dict):
         abort(400, description="Invalid JSON payload")
+
+    # Invalidate GitHub API cache so next read reflects latest webhook data
+    _cached_gh_run = None
+    _last_gh_check = 0
 
     save_report(data)
     save_to_history(data)
@@ -264,6 +307,15 @@ def receive_webhook():
         "message": "Report received and dashboard updated",
         "findings": summary.get("total_findings", 0)
     }), 200
+
+
+@app.after_request
+def set_no_cache_headers(response):
+    """Bütün /api/ endpoint-ləri üçün brauzer və CDN keşini deaktiv edir."""
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
 
 
 @app.route("/api/health")

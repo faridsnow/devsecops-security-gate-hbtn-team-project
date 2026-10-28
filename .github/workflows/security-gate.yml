@@ -40,14 +40,13 @@ jobs:
         env:
           DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
           DASHBOARD_API_KEY: ${{ secrets.DASHBOARD_API_KEY }}
+          SCAN_OUTCOME: ${{ steps.security_scan.outcome }}
         run: |
-          if [ -f normalized_report.json ] && [ -n "$DASHBOARD_URL" ]; then
-            # Prepare payload with git info and scan status
-            export SCAN_STATUS="PASSED"
-            if [ "${{ steps.security_scan.outcome }}" == "failure" ]; then
-              export SCAN_STATUS="BLOCKED"
-            fi
+          if [ ! -f normalized_report.json ] && [ -f security_report.json ]; then
+            python scripts/vapt_normalizer.py --input security_report.json --output normalized_report.json || true
+          fi
 
+          if [ -f normalized_report.json ] && [ -n "$DASHBOARD_URL" ]; then
             python3 -c "
           import json, os, subprocess, sys, time
           from datetime import datetime, timezone
@@ -68,6 +67,19 @@ jobs:
               except Exception:
                   pass
 
+          # Determine SCAN_STATUS:
+          # If scan outcome was failure OR there are critical/high findings, status MUST be BLOCKED
+          crit_count = stats.get('critical_count', 0)
+          high_count = stats.get('high_count', 0)
+          scan_outcome = os.environ.get('SCAN_OUTCOME', '').lower()
+
+          if scan_outcome == 'failure' or crit_count > 0 or high_count > 0:
+              scan_status = 'BLOCKED'
+          else:
+              scan_status = 'PASSED'
+
+          print(f'Computed SCAN_STATUS: {scan_status} (critical={crit_count}, high={high_count}, outcome={scan_outcome})')
+
           # Git info
           commit = subprocess.getoutput('git rev-parse HEAD').strip()
           branch = os.environ.get('GITHUB_REF_NAME') or subprocess.getoutput('git rev-parse --abbrev-ref HEAD').strip()
@@ -78,12 +90,12 @@ jobs:
           payload = {
               'timestamp': datetime.now(timezone.utc).isoformat(),
               'scanner_version': '1.0.0',
-              'status': os.environ.get('SCAN_STATUS', 'PASSED'),
+              'status': scan_status,
               'summary': {
                   'files_scanned': files_scanned,
-                  'total_findings': stats.get('unique_findings_count', 0),
-                  'critical': stats.get('critical_count', 0),
-                  'high': stats.get('high_count', 0),
+                  'total_findings': stats.get('unique_findings_count', len(findings)),
+                  'critical': crit_count,
+                  'high': high_count,
                   'medium': stats.get('medium_count', 0),
                   'low': stats.get('low_count', 0)
               },
@@ -105,28 +117,36 @@ jobs:
 
           # Wake up the Render free-tier service before sending the webhook
           print('Waking up Render service...')
-          for attempt in range(3):
+          for attempt in range(6):
               try:
                   r = requests.get(health_url, timeout=60)
-                  print(f'Health check: {r.status_code}')
-                  break
+                  print(f'Health check attempt {attempt+1}: {r.status_code}')
+                  if r.status_code == 200:
+                      print('Render service is awake and healthy!')
+                      break
+                  else:
+                      print(f'Render waking up, returned {r.status_code}...')
               except Exception as e:
-                  print(f'Wake-up attempt {attempt+1}/3 failed: {e}')
-                  if attempt < 2:
-                      time.sleep(5)
+                  print(f'Wake-up attempt {attempt+1}/6 failed: {e}')
+              if attempt < 5:
+                  time.sleep(5)
 
-          # Send webhook with retry
+          # Send webhook with retry (handling 502/503 during cold boot)
           sent = False
-          for attempt in range(3):
+          for attempt in range(5):
               try:
                   r = requests.post(webhook_url, json=payload, headers=headers, timeout=30)
-                  print(f'Dashboard webhook: {r.status_code} - {r.text}')
-                  sent = True
-                  break
+                  print(f'Dashboard webhook attempt {attempt+1}: {r.status_code} - {r.text}')
+                  if r.status_code == 200:
+                      sent = True
+                      print('Dashboard updated successfully!')
+                      break
+                  else:
+                      print(f'Webhook returned non-200 status {r.status_code}, retrying...')
               except Exception as e:
-                  print(f'Webhook attempt {attempt+1}/3 failed: {e}')
-                  if attempt < 2:
-                      time.sleep(5)
+                  print(f'Webhook attempt {attempt+1}/5 exception: {e}')
+              if attempt < 4:
+                  time.sleep(5)
 
           if not sent:
               print('WARNING: All webhook attempts failed. Dashboard was not updated.')

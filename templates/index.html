@@ -42,7 +42,7 @@
             <div class="flex items-center gap-3">
                 <span id="live-indicator" class="flex items-center gap-1.5 text-xs text-gray-400">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-                    <span>LIVE — Auto-Refresh: 30s</span>
+                    <span>LIVE — Auto-Refresh: 15s</span>
                 </span>
                 <span id="gate-badge" class="px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border flex items-center gap-1.5">
                     ⏳ Yüklənir...
@@ -141,7 +141,7 @@
                     </h3>
                     <p class="text-xs text-gray-400">Hər bir insident üçün CVSS skoru, CWE kateqoriyası və hazır düzəliş</p>
                 </div>
-                <button onclick="fetchReport()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                <button onclick="manualRefresh()" id="refresh-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                     Yenilə
                 </button>
@@ -208,21 +208,37 @@
         let historyChart = null;
 
         // ─── Fetch Report ─────────────────────────────────────
+        let isFetching = false;
         async function fetchReport() {
+            if (isFetching) return;
+            isFetching = true;
             try {
+                const now = Date.now();
                 const [reportRes, historyRes] = await Promise.all([
-                    fetch('/api/report'),
-                    fetch('/api/history')
+                    fetch(`/api/report?t=${now}`, { cache: 'no-store' }),
+                    fetch(`/api/history?t=${now}`, { cache: 'no-store' })
                 ]);
-                const report = await reportRes.json();
-                const history = await historyRes.json();
-                updateDashboard(report);
-                updateHistory(history);
-                document.getElementById('last-updated').textContent = 
-                    'Son yeniləmə: ' + new Date().toLocaleTimeString('az-AZ');
+                if (reportRes.ok && historyRes.ok) {
+                    const report = await reportRes.json();
+                    const history = await historyRes.json();
+                    updateDashboard(report);
+                    updateHistory(history);
+                    document.getElementById('last-updated').textContent = 
+                        'Son yeniləmə: ' + new Date().toLocaleTimeString('az-AZ');
+                }
             } catch (err) {
                 console.error('Dashboard fetch error:', err);
+            } finally {
+                isFetching = false;
             }
+        }
+
+        async function manualRefresh() {
+            const btn = document.getElementById('refresh-btn');
+            const icon = btn ? btn.querySelector('svg, i') : null;
+            if (icon) icon.classList.add('animate-spin');
+            await fetchReport();
+            if (icon) setTimeout(() => icon.classList.remove('animate-spin'), 600);
         }
 
         // ─── Update Dashboard ─────────────────────────────────
@@ -466,7 +482,7 @@
         // ─── Init ─────────────────────────────────────────────
         lucide.createIcons();
         fetchReport();
-        setInterval(fetchReport, 30000); // 30 saniyədə bir yenilə
+        setInterval(fetchReport, 15000); // 15 saniyədə bir yenilə
     </script>
 </body>
 </html>

@@ -188,5 +188,72 @@ def test_load_report_with_fallback(client):
     assert "git_info" in rep
 
 
+def test_get_api_report_no_cache_headers(client):
+    """GET /api/report returns no-cache headers to prevent stale browser and CDN responses"""
+    response = client.get("/api/report")
+    assert response.status_code == 200
+    assert response.headers.get("Cache-Control") == "no-store, no-cache, must-revalidate, max-age=0"
+    assert response.headers.get("Pragma") == "no-cache"
+
+
+def test_get_api_history_no_cache_headers(client):
+    """GET /api/history returns no-cache headers to prevent stale browser and CDN responses"""
+    response = client.get("/api/history")
+    assert response.status_code == 200
+    assert response.headers.get("Cache-Control") == "no-store, no-cache, must-revalidate, max-age=0"
+    assert response.headers.get("Pragma") == "no-cache"
+
+
+def test_history_deduplication_on_repeated_webhook(client, sample_payload):
+    """Posting identical consecutive webhook does not flood history with duplicates"""
+    initial_resp = client.get("/api/history")
+    initial_len = len(initial_resp.get_json())
+
+    client.post("/api/webhook", headers={"X-API-Key": API_KEY}, json=sample_payload)
+    client.post("/api/webhook", headers={"X-API-Key": API_KEY}, json=sample_payload)
+
+    response = client.get("/api/history")
+    history = response.get_json()
+    # Length should have increased by at most 1, not 2
+    assert len(history) == initial_len + 1
+    assert history[0]["commit"] == sample_payload["git_info"]["commit"][:7]
+
+
+def test_load_report_does_not_clobber_newer_webhook(client, monkeypatch):
+    """load_report does not overwrite a fresh webhook report with an older GitHub Actions run"""
+    from datetime import datetime, timezone, timedelta
+    import app as app_module
+
+    now = datetime.now(timezone.utc)
+    newer_report = {
+        "timestamp": now.isoformat(),
+        "scanner_version": "1.0.0",
+        "status": "BLOCKED",
+        "summary": {"files_scanned": 12, "total_findings": 4, "critical": 4, "high": 0, "medium": 0, "low": 0},
+        "findings": [{"id": "SEC-001", "name": "AWS Key", "severity": "CRITICAL"}],
+        "git_info": {"commit": "newcomm1", "branch": "main", "author": "dev", "message": "insecure code"}
+    }
+    app_module.save_report(newer_report)
+
+    # Mock GitHub returning an older run
+    older_time = (now - timedelta(minutes=10)).isoformat()
+    mock_old_run = {
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "oldcomm123456",
+        "created_at": older_time,
+        "head_branch": "main",
+        "head_commit": {"message": "old commit", "author": {"name": "old_author"}}
+    }
+    monkeypatch.setattr(app_module, "check_github_latest_run", lambda: mock_old_run)
+
+    loaded = app_module.load_report()
+    # Should keep the newer report from webhook (commit newcomm1, BLOCKED, 4 findings)
+    assert loaded["git_info"]["commit"] == "newcomm1"
+    assert loaded["status"] == "BLOCKED"
+    assert loaded["summary"]["total_findings"] == 4
+    assert len(loaded["findings"]) == 1
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
