@@ -1,5 +1,15 @@
 [
   {
+    "timestamp": "2026-10-28T22:35:00.000000+00:00",
+    "status": "PASSED",
+    "total_findings": 0,
+    "critical": 0,
+    "high": 0,
+    "commit": "5bb4649",
+    "branch": "main",
+    "message": "fix: sanitize code, remove secrets, secure SQL and AST parser"
+  },
+  {
     "timestamp": "2026-10-28T22:25:33.000000+00:00",
     "status": "BLOCKED",
     "total_findings": 4,
@@ -28,16 +38,6 @@
     "commit": "74b11e2",
     "branch": "main",
     "message": "feat: junior dev adds insecure code and secrets"
-  },
-  {
-    "timestamp": "2026-10-27T11:45:00.000000+00:00",
-    "status": "PASSED",
-    "total_findings": 0,
-    "critical": 0,
-    "high": 0,
-    "commit": "3dede92",
-    "branch": "main",
-    "message": "fix: sanitize code, remove secrets, secure SQL and AST parser"
   },
   {
     "timestamp": "2026-10-27T08:24:02.013079+00:00",
